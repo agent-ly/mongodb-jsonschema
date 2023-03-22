@@ -1,0 +1,20 @@
+{
+  "name": "mongodb_json_schema",
+  "version": "1.0.0",
+  "description": "MongoDB's JSON Schema dialect validator",
+  "type": "module",
+  "exports": {
+    ".": "./src/mod.ts"
+  },
+  "scripts": {
+    "test": "ts-node-esm ./test/test.ts"
+  },
+  "dependencies": {
+    "bson": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.2"
+  }
+}
