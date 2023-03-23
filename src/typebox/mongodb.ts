@@ -54,25 +54,12 @@ TypeSystem.Type<Decimal128>(
   "Decimal",
   (_, value) => value instanceof Decimal128
 );
-TypeSystem.Type<number | string | Date>(
-  "Date",
-  (_, value) =>
-    typeof value === "number" ||
-    typeof value === "string" ||
-    value instanceof Date
-);
-TypeSystem.Type<number | string | Timestamp>(
+TypeSystem.Type<Date>("Date", (_, value) => value instanceof Date);
+TypeSystem.Type<Timestamp>(
   "Timestamp",
-  (_, value) =>
-    typeof value === "number" ||
-    typeof value === "string" ||
-    value instanceof Timestamp
+  (_, value) => value instanceof Timestamp
 );
-TypeSystem.Type<string | ObjectId>("ObjectId", (_, value) =>
-  typeof value === "string"
-    ? ObjectId.isValid(value)
-    : value instanceof ObjectId
-);
+TypeSystem.Type<ObjectId>("ObjectId", (_, value) => value instanceof ObjectId);
 TypeSystem.Type<Buffer>("BinData", (_, value) => value instanceof Buffer);
 
 export class MongoDBTypeBuilder extends TypeBuilder {
@@ -125,19 +112,19 @@ export class MongoDBTypeBuilder extends TypeBuilder {
       bsonType: "decimal",
     });
   }
-  Date(): TUnsafe<number | string | Date> {
+  Date(): TUnsafe<Date> {
     return this.Create({
       [Kind]: "Date",
       bsonType: "date",
     });
   }
-  Timestamp(): TUnsafe<number | string | Timestamp> {
+  Timestamp(): TUnsafe<Timestamp> {
     return this.Create({
       [Kind]: "Timestamp",
       bsonType: "timestamp",
     });
   }
-  ObjectId(): TUnsafe<string | ObjectId> {
+  ObjectId(): TUnsafe<ObjectId> {
     return this.Create({
       [Kind]: "ObjectId",
       bsonType: "objectId",

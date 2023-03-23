@@ -217,62 +217,62 @@ export class Builder<T> {
   }
 }
 
-export type BuilderFunctions = {
-  any: <T>() => Builder<T>;
-  allOf: <U extends AnyBuilder[]>(builders: U) => AllOfBuilder<U>;
-  anyOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
-  oneOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
-  enum: <T extends Record<string, string | number> = {}>(
+export type SchemaFns = {
+  Any: <T>() => Builder<T>;
+  AllOf: <U extends AnyBuilder[]>(builders: U) => AllOfBuilder<U>;
+  AnyOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
+  OneOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
+  Enum: <T extends Record<string, string | number> = {}>(
     enums: T
   ) => EnumBuilder<T>;
-  null: () => Builder<null>;
-  string: <T extends string = string>() => Builder<T>;
-  number: <T extends number = number>() => Builder<T>;
-  array(): Builder<unknown[]>;
-  array<T extends AnyBuilder | AnyBuilder[]>(
+  Null: () => Builder<null>;
+  Str: <T extends string = string>() => Builder<T>;
+  Number: <T extends number = number>() => Builder<T>;
+  Array(): Builder<unknown[]>;
+  Array<T extends AnyBuilder | AnyBuilder[]>(
     builderOrBuilders: T
   ): ArrayBuilder<T>;
-  object(): Builder<Record<string, unknown>>;
-  object<U extends Record<string, AnyBuilder>>(properties: U): ObjectBuilder<U>;
+  Object(): Builder<Record<string, unknown>>;
+  Object<U extends Record<string, AnyBuilder>>(properties: U): ObjectBuilder<U>;
 
-  int: <T extends number = number>() => Builder<T>;
-  bigint: () => Builder<bigint>;
-  double: () => Builder<number>;
-  long: () => Builder<Long>;
-  decimal: () => Builder<Decimal128>;
-  date: () => Builder<Date>;
-  timestamp: () => Builder<Timestamp>;
-  objectId: () => Builder<ObjectId>;
-  binData: () => Builder<Buffer>;
+  Int: <T extends number = number>() => Builder<T>;
+  BigInt: () => Builder<bigint>;
+  Double: () => Builder<number>;
+  Long: () => Builder<Long>;
+  Decimal: () => Builder<Decimal128>;
+  Date: () => Builder<Date>;
+  Timestamp: () => Builder<Timestamp>;
+  ObjectId: () => Builder<ObjectId>;
+  Binary: () => Builder<Buffer>;
 };
 
-export const B: BuilderFunctions = {
-  any: () => new Builder(),
-  allOf: (builders) => new Builder().allOf(builders),
-  anyOf: (builders) => new Builder().anyOf(builders),
-  oneOf: (builders) => new Builder().oneOf(builders),
-  enum: (enums) => new Builder().enum(enums),
-  null: () => new Builder<null>().type("null"),
-  string: <T extends string = string>() => new Builder<T>().type("string"),
-  number: <T extends number = number>() => new Builder<T>().type("number"),
-  array: <T extends AnyBuilder | AnyBuilder[]>(builderOrBuilders?: T) => {
+export const Schema: SchemaFns = {
+  Any: () => new Builder(),
+  AllOf: (builders) => new Builder().allOf(builders),
+  AnyOf: (builders) => new Builder().anyOf(builders),
+  OneOf: (builders) => new Builder().oneOf(builders),
+  Enum: (enums) => new Builder().enum(enums),
+  Null: () => new Builder<null>().type("null"),
+  Str: <T extends string = string>() => new Builder<T>().type("string"),
+  Number: <T extends number = number>() => new Builder<T>().type("number"),
+  Array: <T extends AnyBuilder | AnyBuilder[]>(builderOrBuilders?: T) => {
     return builderOrBuilders
       ? new Builder().type("array").items(builderOrBuilders)
       : new Builder<unknown[]>().type("array");
   },
-  object: <U extends Record<string, AnyBuilder>>(properties?: U) => {
+  Object: <U extends Record<string, AnyBuilder>>(properties?: U) => {
     return properties
       ? new Builder().type("object").properties(properties)
       : new Builder<Record<string, unknown>>().type("object");
   },
 
-  int: <T extends number = number>() => new Builder<T>().bsonType("int"),
-  bigint: () => new Builder<bigint>().bsonType("long"),
-  double: () => new Builder<number>().bsonType("double"),
-  long: () => new Builder<Long>().bsonType("long"),
-  decimal: () => new Builder<Decimal128>().bsonType("decimal"),
-  date: () => new Builder<Date>().bsonType("date"),
-  timestamp: () => new Builder<Timestamp>().bsonType("timestamp"),
-  objectId: () => new Builder<ObjectId>().bsonType("objectId"),
-  binData: () => new Builder<Buffer>().bsonType("binData"),
+  Int: <T extends number = number>() => new Builder<T>().bsonType("int"),
+  BigInt: () => new Builder<bigint>().bsonType("long"),
+  Double: () => new Builder<number>().bsonType("double"),
+  Long: () => new Builder<Long>().bsonType("long"),
+  Decimal: () => new Builder<Decimal128>().bsonType("decimal"),
+  Date: () => new Builder<Date>().bsonType("date"),
+  Timestamp: () => new Builder<Timestamp>().bsonType("timestamp"),
+  ObjectId: () => new Builder<ObjectId>().bsonType("objectId"),
+  Binary: () => new Builder<Buffer>().bsonType("binData"),
 };

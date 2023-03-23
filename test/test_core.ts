@@ -1,10 +1,11 @@
 import { ObjectId } from "bson";
 
-import { B, InferType, validate } from "../src/core/mod.ts";
+import { Schema, InferType, validate } from "../src/core/mod.ts";
 
-const User = B.object({
-  _id: B.objectId(),
-  name: B.string(),
+const User = Schema.Object({
+  _id: Schema.ObjectId(),
+  name: Schema.Str(),
+  age: Schema.Number(),
 });
 
 type User = InferType<typeof User>;
@@ -16,6 +17,7 @@ console.log(UserSchema);
 const user: User = {
   _id: new ObjectId(),
   name: "John Doe",
+  age: 42,
 };
 
 console.log(validate(User.getSchema(), user));
