@@ -1,8 +1,8 @@
 export const JSONTypes = [
   "null",
   "boolean",
-  "string",
   "number",
+  "string",
   "array",
   "object",
 ] as const;
@@ -27,12 +27,12 @@ export const BSONTypes = [
 
 export type BSONType = string | typeof BSONTypes[number];
 
-interface MetadataKeywords {
+export interface MetadataKeywords {
   title?: string;
   description?: string;
 }
 
-interface LogicalKeywords {
+export interface LogicalKeywords {
   allOf?: JSONSchema[];
   anyOf?: JSONSchema[];
   oneOf?: JSONSchema[];
@@ -40,23 +40,28 @@ interface LogicalKeywords {
   enum?: unknown[];
 }
 
-interface TypeKeywords {
+export interface TypeKeywords {
   type?: JSONType | JSONType[];
   bsonType?: BSONType | BSONType[];
 }
 
-interface ScalarKeywords {
-  minLength?: number;
-  maxLength?: number;
-  pattern?: string;
-  multipleOf?: number;
-  minimum?: number;
+export interface NumericKeywords {
+  multipleOf?: number | bigint;
+  minimum?: number | bigint;
   exclusiveMinimum?: boolean;
-  maximum?: number;
+  maximum?: number | bigint;
   exclusiveMaximum?: boolean;
 }
 
-interface ArrayKeywords {
+export interface StringKeywords {
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+}
+
+export type ScalarKeywords = NumericKeywords & StringKeywords;
+
+export interface ArrayKeywords {
   minItems?: number;
   maxItems?: number;
   uniqueItems?: boolean;
@@ -64,7 +69,7 @@ interface ArrayKeywords {
   additionalItems?: boolean | JSONSchema;
 }
 
-interface ObjectKeywords {
+export interface ObjectKeywords {
   minProperties?: number;
   maxProperties?: number;
   required?: string[];

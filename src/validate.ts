@@ -1,4 +1,4 @@
-import { Decimal128, Long, ObjectId, Timestamp } from "bson";
+import { Decimal128, Long, ObjectId, Timestamp } from "mongodb";
 
 import type { BSONType, JSONType, JSONSchema } from "./json_schema.ts";
 
@@ -151,7 +151,7 @@ function validateProperty(
   } catch (error) {
     if (error instanceof ValidationError) {
       error.key = key;
-      error.path = error.path ? `${key}.${error.path}` : key;
+      error.path = `/${key}${error.path}`;
     }
     throw error;
   }
@@ -260,7 +260,7 @@ function validateScalar(schema: JSONSchema, data: unknown) {
         `String "${data}" does not match the pattern ${schema.pattern}`,
         data
       );
-  } else if (typeof data === "number") {
+  } else if (typeof data === "number" || typeof data === "bigint") {
     if (
       schema.multipleOf !== undefined &&
       schema.multipleOf > 0 &&
@@ -400,17 +400,13 @@ export function validate(schema: JSONSchema, data: unknown): true {
   return true;
 }
 
-export function safeValidate(
+export type ValidResult = { valid: true };
+export type InvalidResult = { valid: false; error: ValidationError };
+export type ValidationResult = ValidResult | InvalidResult;
+export function tryValidate(
   schema: JSONSchema,
   data: unknown
-):
-  | {
-      valid: true;
-    }
-  | {
-      valid: false;
-      error: ValidationError;
-    } {
+): ValidationResult {
   try {
     validate(schema, data);
     return { valid: true };
