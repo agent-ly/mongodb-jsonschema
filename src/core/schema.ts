@@ -82,10 +82,8 @@ export class Builder<T> {
     return this as any;
   }
 
-  enum<U extends Record<string, string | number>>(
-    enumMap: U
-  ): EnumBuilder<U, T> {
-    this.#schema.enum = [...Object.values(enumMap)];
+  enum<U extends Record<string, string | number>>(enums: U): EnumBuilder<U, T> {
+    this.#schema.enum = [...Object.values(enums)];
     return this as any;
   }
 
@@ -222,11 +220,12 @@ export type SchemaFns = {
   AllOf: <U extends AnyBuilder[]>(builders: U) => AllOfBuilder<U>;
   AnyOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
   OneOf: <U extends AnyBuilder[]>(builders: U) => AnyOfOrOneOfBuilder<U>;
+  Not: <T, U extends AnyBuilder>(builder: U) => NotBuilder<U, T>;
   Enum: <T extends Record<string, string | number> = {}>(
     enums: T
   ) => EnumBuilder<T>;
   Null: () => Builder<null>;
-  Str: <T extends string = string>() => Builder<T>;
+  String: <T extends string = string>() => Builder<T>;
   Number: <T extends number = number>() => Builder<T>;
   Array(): Builder<unknown[]>;
   Array<T extends AnyBuilder | AnyBuilder[]>(
@@ -251,9 +250,10 @@ export const Schema: SchemaFns = {
   AllOf: (builders) => new Builder().allOf(builders),
   AnyOf: (builders) => new Builder().anyOf(builders),
   OneOf: (builders) => new Builder().oneOf(builders),
+  Not: <T, U extends AnyBuilder>(builder: U) => new Builder<T>().not(builder),
   Enum: (enums) => new Builder().enum(enums),
   Null: () => new Builder<null>().type("null"),
-  Str: <T extends string = string>() => new Builder<T>().type("string"),
+  String: <T extends string = string>() => new Builder<T>().type("string"),
   Number: <T extends number = number>() => new Builder<T>().type("number"),
   Array: <T extends AnyBuilder | AnyBuilder[]>(builderOrBuilders?: T) => {
     return builderOrBuilders

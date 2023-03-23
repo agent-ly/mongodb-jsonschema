@@ -4,7 +4,7 @@ import { Schema, InferType, validate } from "../src/core/mod.ts";
 
 const User = Schema.Object({
   _id: Schema.ObjectId(),
-  name: Schema.Str(),
+  name: Schema.String(),
   age: Schema.Number(),
 });
 
