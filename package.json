@@ -4,7 +4,8 @@
   "description": "MongoDB's JSON Schema dialect validator",
   "type": "module",
   "exports": {
-    ".": "./src/mod.ts"
+    ".": "./src/core/mod.ts",
+    "./typebox": "./src/typebox/mod.ts"
   },
   "scripts": {
     "test": "ts-node-esm ./test/test.ts"
@@ -16,5 +17,8 @@
     "@types/node": "^18.15.5",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"
+  },
+  "optionalDependencies": {
+    "@sinclair/typebox": "^0.26.1"
   }
 }

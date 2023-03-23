@@ -1,6 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@sinclair/typebox': ^0.26.1
   '@types/node': ^18.15.5
   bson: ^5.1.0
   ts-node: ^10.9.1
@@ -8,6 +9,9 @@ specifiers:
 
 dependencies:
   bson: 5.1.0
+
+optionalDependencies:
+  '@sinclair/typebox': 0.26.1
 
 devDependencies:
   '@types/node': 18.15.5
@@ -38,6 +42,11 @@ packages:
       '@jridgewell/resolve-uri': 3.1.0
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
+
+  /@sinclair/typebox/0.26.1:
+    resolution: {integrity: sha512-6tJPRp4iDOLXvjuiB5O96Dgseex4B7at91koonQ000Fk+MC4Ix7B56ULS9cBJgakWb5P8QsytLigkAve17g86Q==}
+    dev: false
+    optional: true
 
   /@tsconfig/node10/1.0.9:
     resolution: {integrity: sha512-jNsYVVxU8v5g43Erja32laIDHXeoNvFEpX33OK4d6hljo3jDhCBDhx5dhCCTMWUojscpAagGiRkBKxpdl9fxqA==}

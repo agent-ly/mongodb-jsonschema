@@ -3,8 +3,8 @@ export const JSONTypes = [
   "boolean",
   "string",
   "number",
-  "object",
   "array",
+  "object",
 ] as const;
 
 export type JSONType = string | typeof JSONTypes[number];
@@ -13,15 +13,16 @@ export const BSONTypes = [
   "null",
   "bool",
   "string",
-  "object",
   "array",
-  "double",
+  "object",
   "int",
+  "double",
   "long",
+  "decimal",
   "date",
-  "binData",
-  "objectId",
   "timestamp",
+  "objectId",
+  "binData",
 ] as const;
 
 export type BSONType = string | typeof BSONTypes[number];
@@ -48,17 +49,17 @@ interface ScalarKeywords {
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  multipleOf?: number;
   minimum?: number;
   exclusiveMinimum?: boolean;
   maximum?: number;
   exclusiveMaximum?: boolean;
-  multipleOf?: number;
 }
 
 interface ArrayKeywords {
-  uniqueItems?: boolean;
   minItems?: number;
   maxItems?: number;
+  uniqueItems?: boolean;
   items?: JSONSchema | JSONSchema[];
   additionalItems?: boolean | JSONSchema;
 }

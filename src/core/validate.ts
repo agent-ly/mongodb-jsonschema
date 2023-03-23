@@ -1,4 +1,4 @@
-import { ObjectId, Timestamp } from "bson";
+import { Decimal128, Long, ObjectId, Timestamp } from "bson";
 
 import type { BSONType, JSONType, JSONSchema } from "./json_schema.ts";
 
@@ -14,9 +14,9 @@ const JSONTypeValidators: Record<string, TypeValidatorFn> = {
   boolean: (data: unknown): data is boolean => typeof data === "boolean",
   string: (data: unknown): data is string => typeof data === "string",
   number: (data: unknown): data is number => typeof data === "number",
+  array: (data: unknown): data is unknown[] => Array.isArray(data),
   object: (data: unknown): data is Record<string, unknown> =>
     typeof data === "object" && data !== null,
-  array: (data: unknown): data is unknown[] => Array.isArray(data),
 };
 
 const BSONTypeValidators: Record<string, TypeValidatorFn> = {
@@ -26,15 +26,17 @@ const BSONTypeValidators: Record<string, TypeValidatorFn> = {
   object: JSONTypeValidators.object,
   array: JSONTypeValidators.array,
 
-  double: (data: unknown): data is number =>
-    typeof data === "number" && !Number.isInteger(data),
   int: (data: unknown): data is number =>
     typeof data === "number" && Number.isInteger(data),
-  long: (data: unknown): data is bigint => typeof data === "bigint",
+  double: (data: unknown): data is number =>
+    typeof data === "number" && !Number.isInteger(data),
+  long: (data: unknown): data is bigint =>
+    typeof data === "bigint" || data instanceof Long,
+  decimal: (data: unknown): data is Decimal128 => data instanceof Decimal128,
   date: (data: unknown): data is Date => data instanceof Date,
-  binData: (data: unknown): data is Buffer => data instanceof Buffer,
-  objectId: (data: unknown): data is ObjectId => data instanceof ObjectId,
   timestamp: (data: unknown): data is Timestamp => data instanceof Timestamp,
+  objectId: (data: unknown): data is ObjectId => data instanceof ObjectId,
+  binData: (data: unknown): data is Buffer => data instanceof Buffer,
 };
 
 const LogicalKeywordValidators: Record<string, KeywordValidatorFn> = {
