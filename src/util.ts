@@ -1,4 +1,4 @@
-export type Evaluate<T> = T extends infer O
+export type Flatten<T> = T extends infer O
   ? {
       [K in keyof O]: O[K];
     }
@@ -11,7 +11,7 @@ export type RequiredPropertyKeys<T extends Record<string, unknown>> =
 export type ReduceProperties<
   T extends Record<string, unknown>,
   R extends Record<keyof T, unknown>
-> = Evaluate<
+> = Flatten<
   Required<Pick<R, RequiredPropertyKeys<T>>> &
     Partial<Pick<R, OptionalPropertyKeys<T>>>
 >;

@@ -309,7 +309,7 @@ export const buildScalar = <T, N extends AnyNumber>(
   return builder;
 };
 export const Build = {
-  blank: <T>() => new Builder<T>(),
+  builder: <T>() => new Builder<T>(),
 
   allOf: <TBuilders extends AnyBuilder[]>(...allOf: TBuilders) =>
     new Builder<InferIntersectionType<TBuilders>>().allOf(...allOf),
