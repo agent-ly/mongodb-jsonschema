@@ -3,23 +3,23 @@ import { Binary, Decimal128, Long, ObjectId, Timestamp } from "mongodb";
 import type { JSONSchema } from "./jsonschema.ts";
 import type { ReduceProperties, UnionToIntersection } from "./util.ts";
 
-export type AnyNumber = number | bigint;
-export type AnyMap = Record<string, unknown>;
-export type AnyBuilder = Builder<unknown>;
-export type AnyBuilderMap = Record<string, AnyBuilder>;
+type AnyNumber = number | bigint;
+type AnyMap = Record<string, unknown>;
+type AnyBuilder = Builder<unknown>;
+type AnyBuilderMap = Record<string, AnyBuilder>;
 export type InferType<T> = T extends Builder<infer U> ? U : never;
 export type LoosenType<T extends AnyMap> = ReduceProperties<T, T>;
-export type InferUnionType<TBuilders extends AnyBuilder[]> = InferType<
+type InferUnionType<TBuilders extends AnyBuilder[]> = InferType<
   TBuilders[number]
 >;
-export type InferIntersectionType<TBuilders extends AnyBuilder[]> =
+type InferIntersectionType<TBuilders extends AnyBuilder[]> =
   UnionToIntersection<InferUnionType<TBuilders>>;
-export type InferNotType<T, TBuilder extends AnyBuilder> = Exclude<
+type InferNotType<T, TBuilder extends AnyBuilder> = Exclude<
   T,
   InferType<TBuilder>
 >;
-export type InferEnumType<TEnums extends AnyMap> = TEnums[keyof TEnums];
-export type InferArrayType<TItems extends AnyBuilder | AnyBuilder[]> =
+type InferEnumType<TEnums extends AnyMap> = TEnums[keyof TEnums];
+type InferArrayType<TItems extends AnyBuilder | AnyBuilder[]> =
   TItems extends AnyBuilder[]
     ? InferType<TItems[number]>[]
     : InferType<TItems>[];
@@ -27,10 +27,9 @@ type ReduceArrayType<
   T,
   TItems extends AnyBuilder | AnyBuilder[]
 > = T extends unknown[] ? InferArrayType<TItems> : T | InferArrayType<TItems>;
-export type InferObjectType<TProperties extends AnyBuilderMap> =
-  {} extends TProperties
-    ? { [key: string]: unknown }
-    : { [K in keyof TProperties]: InferType<TProperties[K]> };
+type InferObjectType<TProperties extends AnyBuilderMap> = {} extends TProperties
+  ? { [key: string]: unknown }
+  : { [K in keyof TProperties]: InferType<TProperties[K]> };
 type ReduceObjectType<T, TProperties extends AnyBuilderMap> = T extends AnyMap
   ? InferObjectType<TProperties>
   : T | InferObjectType<TProperties>;
@@ -287,13 +286,13 @@ export interface ObjectOptions {
   additionalProperties?: boolean | AnyBuilder;
   dependencies?: Record<string, string[] | AnyBuilder>;
 }
-export const buildType = <T>(options?: TypeOptions) => {
+const buildType = <T>(options?: TypeOptions) => {
   const builder = new Builder<T>();
   if (options?.type) builder.type(options.type);
   else if (options?.bsonType) builder.bsonType(options.bsonType);
   return builder;
 };
-export const buildScalar = <T, N extends AnyNumber>(
+const buildScalar = <T, N extends AnyNumber>(
   options?: TypeOptions & StringOptions & NumericOptions<N>
 ) => {
   const builder = buildType<T>(options);
