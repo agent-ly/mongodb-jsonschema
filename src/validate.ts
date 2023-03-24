@@ -1,6 +1,6 @@
 import { Decimal128, Long, ObjectId, Timestamp } from "mongodb";
 
-import type { BSONType, JSONType, JSONSchema } from "./json_schema.ts";
+import type { BSONType, JSONType, JSONSchema } from "./jsonschema.ts";
 
 type TypeValidatorFn = (data: unknown) => boolean;
 

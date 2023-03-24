@@ -1,6 +1,6 @@
 import { Binary, Decimal128, Long, ObjectId, Timestamp } from "mongodb";
 
-import type { JSONSchema, JSONType, BSONType } from "./json_schema.ts";
+import type { JSONSchema, JSONType, BSONType } from "./jsonschema.ts";
 import type { Flatten, ReduceProperties, UnionToIntersection } from "./util.ts";
 
 export type AnyNumber = number | bigint;
