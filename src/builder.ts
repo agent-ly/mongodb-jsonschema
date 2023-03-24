@@ -1,79 +1,49 @@
-import { Decimal128, Long, ObjectId, Timestamp, Binary } from "mongodb";
+import { Binary, Decimal128, Long, ObjectId, Timestamp } from "mongodb";
 
-import type {
-  ArrayKeywords,
-  BSONType,
-  JSONSchema,
-  JSONType,
-  NumericKeywords,
-  ObjectKeywords,
-  StringKeywords,
-} from "./json_schema.ts";
-import type { UnionToIntersect } from "./util.ts";
-import { type StringFormat, StringFormats } from "./string_formats.ts";
+import type { JSONSchema } from "./json_schema.ts";
+import type { ReduceProperties, UnionToIntersection } from "./util.ts";
 
+export type AnyNumber = number | bigint;
+export type AnyMap = Record<string, unknown>;
+export type AnyBuilder = Builder<unknown>;
+export type AnyBuilderMap = Record<string, AnyBuilder>;
 export type InferType<T> = T extends Builder<infer U> ? U : never;
-type AnyBuilder = Builder<unknown>;
-type AllOfBuilder<U extends AnyBuilder[], T = unknown> = Builder<
-  T & UnionToIntersect<InferType<U[number]>>
+export type LoosenType<T extends AnyMap> = ReduceProperties<T, T>;
+export type InferUnionType<TBuilders extends AnyBuilder[]> = InferType<
+  TBuilders[number]
 >;
-type AnyOfOrOneOfBuilder<U extends AnyBuilder[], T = unknown> = Builder<
-  T & InferType<U[number]>
->;
-type NotBuilder<U extends AnyBuilder, T> = Builder<
-  T extends InferType<U> ? never : T
->;
-type EnumBuilder<U extends Record<string, unknown>, T> = Builder<
-  T & U[keyof U]
->;
-export interface NumericOptions<N extends number | bigint = number>
-  extends NumericKeywords {
-  multipleOf?: N;
-  minimum?: N;
-  maximum?: N;
-}
-export interface StringOptions extends Omit<StringKeywords, "pattern"> {
-  format?: StringFormat;
-  pattern?: string | RegExp;
-}
-export interface ArrayOptions
-  extends Omit<ArrayKeywords, "items" | "additionalItems"> {
-  additionalItems?: boolean | AnyBuilder;
-}
-type ArrayBuilder<U extends AnyBuilder | AnyBuilder[], T> = Builder<
-  U extends AnyBuilder[] ? T & InferType<U[number]>[] : T & InferType<U>[]
->;
-export interface ObjectOptions
-  extends Omit<
-    ObjectKeywords,
-    "properties" | "patternProperties" | "additionalProperties" | "dependencies"
-  > {
-  patternProperties?: Record<string, AnyBuilder>;
-  additionalProperties?: boolean | AnyBuilder;
-  dependencies?: Record<string, AnyBuilder | string[]>;
-}
-/*type OptionalPropertyKeys<T extends Record<string, AnyBuilder>> = {
-  [K in keyof T]: undefined extends InferType<T[K]> ? K : never;
-}[keyof T];
-type RequiredPropertyKeys<T extends Record<string, AnyBuilder>> = keyof Omit<
+export type InferIntersectionType<TBuilders extends AnyBuilder[]> =
+  UnionToIntersection<InferUnionType<TBuilders>>;
+export type InferNotType<T, TBuilder extends AnyBuilder> = Exclude<
   T,
-  OptionalPropertyKeys<T>
+  InferType<TBuilder>
 >;
-type ReduceProperties<
-  T extends Record<string, AnyBuilder>,
-  R extends Record<keyof T, unknown>
-> = Evaluate<
-  Required<Pick<R, RequiredPropertyKeys<T>>> &
-    Partial<Pick<R, OptionalPropertyKeys<T>>>
->;*/
-type ObjectBuilder<U extends Record<string, AnyBuilder>, T> = Builder<
-  T & { [K in keyof U]: InferType<U[K]> }
->;
-
+export type InferEnumType<TEnums extends AnyMap> = TEnums[keyof TEnums];
+export type InferArrayType<TItems extends AnyBuilder | AnyBuilder[]> =
+  TItems extends AnyBuilder[]
+    ? InferType<TItems[number]>[]
+    : InferType<TItems>[];
+type ReduceArrayType<
+  T,
+  TItems extends AnyBuilder | AnyBuilder[]
+> = T extends unknown[] ? InferArrayType<TItems> : T | InferArrayType<TItems>;
+export type InferObjectType<TProperties extends AnyBuilderMap> =
+  {} extends TProperties
+    ? { [key: string]: unknown }
+    : { [K in keyof TProperties]: InferType<TProperties[K]> };
+type ReduceObjectType<T, TProperties extends AnyBuilderMap> = T extends AnyMap
+  ? InferObjectType<TProperties>
+  : T | InferObjectType<TProperties>;
 export class Builder<T> {
   protected declare __type__: T;
 
-  #schema: JSONSchema = {};
+  #schema: JSONSchema;
+
+  constructor() {
+    this.#schema = {};
+  }
+
+  // Configuration
 
   optional(): Builder<T | undefined> {
     return this;
@@ -83,281 +53,325 @@ export class Builder<T> {
     let typeOrBsonType = this.#schema.type || this.#schema.bsonType;
     if (!typeOrBsonType)
       throw new Error("A type must be specified before calling nullable()");
+    if (
+      (typeof typeOrBsonType === "string" && typeOrBsonType === "null") ||
+      typeOrBsonType.includes("null")
+    )
+      throw new Error("Cannot call nullable() on an already nullable type");
     typeOrBsonType =
       typeOrBsonType instanceof Array
         ? [...typeOrBsonType, "null"]
         : [typeOrBsonType, "null"];
     if (this.#schema.type) this.#schema.type = typeOrBsonType;
     else if (this.#schema.bsonType) this.#schema.bsonType = typeOrBsonType;
-    return this as Builder<T | null>;
+    return this;
   }
 
-  title(title: string) {
+  // Metadata
+
+  title(title: string): this {
     this.#schema.title = title;
     return this;
   }
 
-  description(description: string) {
+  description(description: string): this {
     this.#schema.description = description;
     return this;
   }
 
-  allOf<U extends AnyBuilder[]>(builders: U): AllOfBuilder<U, T> {
+  // Logical
+
+  allOf<TBuilders extends AnyBuilder[]>(
+    ...builders: TBuilders
+  ): Builder<T & InferIntersectionType<TBuilders>> {
     this.#schema.allOf = builders.map((builder) => builder.#schema);
     return this as any;
   }
 
-  anyOf<U extends AnyBuilder[]>(builders: U): AnyOfOrOneOfBuilder<U, T> {
+  anyOf<TBuilders extends AnyBuilder[]>(
+    ...builders: TBuilders
+  ): Builder<T | InferUnionType<TBuilders>> {
     this.#schema.anyOf = builders.map((builder) => builder.#schema);
     return this as any;
   }
 
-  oneOf<U extends AnyBuilder[]>(builders: U): AnyOfOrOneOfBuilder<U, T> {
+  oneOf<TBuilders extends AnyBuilder[]>(
+    ...builders: TBuilders
+  ): Builder<T | InferUnionType<TBuilders>> {
     this.#schema.oneOf = builders.map((builder) => builder.#schema);
     return this as any;
   }
 
-  not<U extends AnyBuilder>(builder: U): NotBuilder<U, T> {
+  not<TBuilder extends AnyBuilder>(
+    builder: TBuilder
+  ): Builder<InferNotType<T, TBuilder>> {
     this.#schema.not = builder.#schema;
     return this as any;
   }
 
-  enum<U extends Record<string, unknown>>(enums: U): EnumBuilder<U, T> {
-    this.#schema.enum = [...Object.values(enums)];
+  enum<TEnums extends AnyMap>(enums: TEnums): Builder<InferEnumType<TEnums>> {
+    this.#schema.enum = Object.keys(enums);
     return this as any;
   }
 
-  type(type: JSONType | JSONType[]) {
+  // Types
+
+  type(type: JSONSchema["type"]): this {
     this.#schema.type = type;
     return this;
   }
 
-  bsonType(type: BSONType | BSONType[]) {
-    this.#schema.bsonType = type;
+  bsonType(bsonType: JSONSchema["bsonType"]): this {
+    this.#schema.bsonType = bsonType;
     return this;
   }
 
-  multipleOf(multipleOf: number | bigint) {
+  // Number
+
+  multipleOf(multipleOf: AnyNumber): this {
     this.#schema.multipleOf = multipleOf;
     return this;
   }
 
-  minimum(minimum: number | bigint = 0, exclusive?: boolean) {
+  minimum(minimum: AnyNumber, exclusive?: boolean): this {
     this.#schema.minimum = minimum;
     if (exclusive !== undefined) this.#schema.exclusiveMinimum = exclusive;
     return this;
   }
 
-  maximum(maximum: number | bigint, exclusive?: boolean) {
+  maximum(maximum: AnyNumber, exclusive?: boolean): this {
     this.#schema.maximum = maximum;
     if (exclusive !== undefined) this.#schema.exclusiveMaximum = exclusive;
     return this;
   }
 
-  minLength(minLength = 0) {
+  // String
+
+  minLength(minLength: number): this {
     this.#schema.minLength = minLength;
     return this;
   }
 
-  maxLength(maxLength = 0) {
+  maxLength(maxLength: number): this {
     this.#schema.maxLength = maxLength;
     return this;
   }
 
-  pattern(pattern: string | RegExp) {
-    if (pattern instanceof RegExp) pattern = pattern.source;
-    this.#schema.pattern = pattern;
+  pattern(pattern: string | RegExp): this {
+    this.#schema.pattern = pattern instanceof RegExp ? pattern.source : pattern;
     return this;
   }
 
-  minItems(minItems = 0) {
+  // Array
+
+  minItems(minItems: number): this {
     this.#schema.minItems = minItems;
     return this;
   }
 
-  maxItems(maxItems: number) {
+  maxItems(maxItems: number): this {
     this.#schema.maxItems = maxItems;
     return this;
   }
 
-  uniqueItems(uniqueItems: boolean) {
+  uniqueItems(uniqueItems: boolean): this {
     this.#schema.uniqueItems = uniqueItems;
     return this;
   }
 
-  items<U extends AnyBuilder | AnyBuilder[]>(
-    builderOrBuilders: U
-  ): ArrayBuilder<U, T> {
-    this.#schema.items =
-      builderOrBuilders instanceof Array
-        ? builderOrBuilders.map((builder) => builder.#schema)
-        : builderOrBuilders.#schema;
-    return this as any;
-  }
-
-  additionalItems(booleanOrBuilder: boolean | AnyBuilder) {
+  additionalItems(additionalItems: boolean | AnyBuilder): this {
     this.#schema.additionalItems =
-      typeof booleanOrBuilder === "boolean"
-        ? booleanOrBuilder
-        : booleanOrBuilder.#schema;
+      typeof additionalItems === "boolean"
+        ? additionalItems
+        : additionalItems.#schema;
     return this;
   }
 
-  minProperties(minProperties = 0) {
+  items<TItems extends AnyBuilder | AnyBuilder[]>(
+    items: TItems
+  ): Builder<ReduceArrayType<T, TItems>> {
+    this.#schema.items = Array.isArray(items)
+      ? items.map((item) => item.#schema)
+      : items.#schema;
+    return this as any;
+  }
+
+  // Object
+
+  minProperties(minProperties: number): this {
     this.#schema.minProperties = minProperties;
     return this;
   }
 
-  maxProperties(maxProperties: number) {
+  maxProperties(maxProperties: number): this {
     this.#schema.maxProperties = maxProperties;
     return this;
   }
 
-  required(required: string[] = []) {
+  required(required: string[]): this {
     this.#schema.required = required;
     return this;
   }
 
-  properties<U extends Record<string, AnyBuilder>>(
-    properties: U
-  ): ObjectBuilder<U, T> {
-    this.#schema.properties = {};
-    for (const [key, builder] of Object.entries(properties))
-      this.#schema.properties[key] = builder.#schema;
+  properties<TProperties extends AnyBuilderMap>(
+    properties: TProperties
+  ): Builder<ReduceObjectType<T, TProperties>> {
+    if (properties) {
+      this.#schema.properties = {};
+      for (const [key, value] of Object.entries(properties)) {
+        this.#schema.properties[key] = value.#schema;
+      }
+    }
     return this as any;
   }
 
-  patternProperties(patternProperties: Record<string, AnyBuilder>) {
+  patternProperties(patternProperties: AnyBuilderMap): this {
     this.#schema.patternProperties = {};
-    for (const [key, builder] of Object.entries(patternProperties))
-      this.#schema.patternProperties[key] = builder.#schema;
-    return this;
-  }
-
-  additionalProperties(booleanOrBuilder: boolean | AnyBuilder) {
-    this.#schema.additionalProperties =
-      typeof booleanOrBuilder === "boolean"
-        ? booleanOrBuilder
-        : booleanOrBuilder.#schema;
-    return this;
-  }
-
-  dependencies(dependencies: Record<string, AnyBuilder | string[]>) {
-    this.#schema.dependencies = {};
-    for (const [key, value] of Object.entries(dependencies)) {
-      this.#schema.dependencies[key] =
-        value instanceof Array ? value : value.#schema;
+    for (const [key, value] of Object.entries(patternProperties)) {
+      this.#schema.patternProperties[key] = value.#schema;
     }
     return this;
   }
 
-  getSchema() {
+  additionalProperties(additionalProperties: boolean | AnyBuilder): this {
+    this.#schema.additionalProperties =
+      typeof additionalProperties === "boolean"
+        ? additionalProperties
+        : additionalProperties.#schema;
+    return this;
+  }
+
+  dependencies(dependencies: Record<string, string[] | AnyBuilder>): this {
+    this.#schema.dependencies = {};
+    for (const [key, value] of Object.entries(dependencies)) {
+      this.#schema.dependencies[key] =
+        value instanceof Builder ? value.#schema : value;
+    }
+    return this;
+  }
+
+  // Public
+
+  getSchema(): JSONSchema {
     return this.#schema;
   }
 }
-
-const buildType = <T>(type?: JSONType, bsonType?: BSONType) => {
+export interface TypeOptions {
+  type?: string;
+  bsonType?: string;
+}
+export interface StringOptions {
+  minLength?: number;
+  maxLength?: number;
+  format?: string;
+  pattern?: string | RegExp;
+}
+export interface NumericOptions<N extends AnyNumber> {
+  multipleOf?: N;
+  minimum?: N;
+  exclusiveMinimum?: boolean;
+  maximum?: N;
+  exclusiveMaximum?: boolean;
+}
+export interface ArrayOptions {
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  additionalItems?: boolean | AnyBuilder;
+}
+export interface ObjectOptions {
+  minProperties?: number;
+  maxProperties?: number;
+  required?: string[];
+  patternProperties?: AnyBuilderMap;
+  additionalProperties?: boolean | AnyBuilder;
+  dependencies?: Record<string, string[] | AnyBuilder>;
+}
+export const buildType = <T>(options?: TypeOptions) => {
   const builder = new Builder<T>();
-  if (type) builder.type(type);
-  else if (bsonType) builder.bsonType(bsonType);
+  if (options?.type) builder.type(options.type);
+  else if (options?.bsonType) builder.bsonType(options.bsonType);
   return builder;
 };
-
-const buildScalar = <T, N extends bigint | number = number>(
-  type?: "boolean" | "string" | "number",
-  bsonType?: "bool" | "string" | "int" | "long" | "double" | "decimal",
-  options?: StringOptions | NumericOptions<N>
+export const buildScalar = <T, N extends AnyNumber>(
+  options?: TypeOptions & StringOptions & NumericOptions<N>
 ) => {
-  const builder = buildType<T>(type, bsonType);
-  if (type === "string" || bsonType === "string") {
-    options = options as StringOptions;
-    if (options?.minLength !== undefined) builder.minLength(options.minLength);
-    if (options?.maxLength !== undefined) builder.maxLength(options.maxLength);
-    if (options?.format && options.format in StringFormats)
-      options.pattern = StringFormats[options.format];
-    if (options?.pattern) builder.pattern(options.pattern);
-  } else if (
-    type === "number" ||
-    bsonType === "int" ||
-    bsonType === "long" ||
-    bsonType === "double" ||
-    bsonType === "decimal"
-  ) {
-    options = options as NumericOptions<N>;
-    if (options?.multipleOf !== undefined)
-      builder.multipleOf(options.multipleOf);
-    if (options?.minimum !== undefined)
-      builder.minimum(options.minimum, options.exclusiveMinimum);
-    if (options?.maximum !== undefined)
-      builder.maximum(options.maximum, options.exclusiveMaximum);
-  }
+  const builder = buildType<T>(options);
+  if (options?.minLength) builder.minLength(options.minLength);
+  if (options?.maxLength) builder.maxLength(options.maxLength);
+  if (options?.format) options.pattern = options.format;
+  if (options?.pattern) builder.pattern(options.pattern);
+  if (options?.multipleOf) builder.multipleOf(options.multipleOf);
+  if (options?.minimum)
+    builder.minimum(options.minimum, options.exclusiveMinimum);
+  if (options?.maximum)
+    builder.maximum(options.maximum, options.exclusiveMaximum);
   return builder;
 };
+export const Build = {
+  blank: <T>() => new Builder<T>(),
 
-export const Type = {
-  allOf: <U extends AnyBuilder[]>(builders: U) => new Builder().allOf(builders),
-  anyOf: <U extends AnyBuilder[]>(builders: U) => new Builder().anyOf(builders),
-  oneOf: <U extends AnyBuilder[]>(builders: U) => new Builder().oneOf(builders),
-  not: <T, U extends AnyBuilder>(builder: U) => new Builder<T>().not(builder),
-  enum: <T extends Record<string, unknown>>(enums: T) =>
-    new Builder().enum(enums),
-
-  any: () => buildType<any>(),
-  null: () => buildType<null>("null"),
-  boolean: () => buildType<boolean>("boolean"),
+  allOf: <TBuilders extends AnyBuilder[]>(...allOf: TBuilders) =>
+    new Builder<InferIntersectionType<TBuilders>>().allOf(...allOf),
+  anyOf: <TBuilders extends AnyBuilder[]>(...anyOf: TBuilders) =>
+    new Builder<InferUnionType<TBuilders>>().anyOf(...anyOf),
+  oneOf: <TBuilders extends AnyBuilder[]>(...oneOf: TBuilders) =>
+    new Builder<InferUnionType<TBuilders>>().oneOf(...oneOf),
+  not: <T, TBuilder extends AnyBuilder>(not: TBuilder) =>
+    new Builder<InferNotType<T, TBuilder>>().not(not),
+  enum: <T extends AnyMap>(enums: T) =>
+    new Builder<InferEnumType<T>>().enum(enums),
+  type: <T>(type: string) => buildType<T>({ type }),
+  null: () => buildType<null>({ type: "null" }),
+  boolean: () => buildType<boolean>({ type: "boolean" }),
   number: <T extends number = number>(options?: NumericOptions<number>) =>
-    buildScalar<T>("number", undefined, options),
+    buildScalar<T, number>({ type: "number", ...options }),
   string: <T extends string = string>(options?: StringOptions) =>
-    buildScalar<T>("string", undefined, options),
-  array: <T extends undefined | AnyBuilder | AnyBuilder[]>(
-    items?: T,
+    buildScalar<T, never>({ type: "string", ...options }),
+  array<TItems extends AnyBuilder | AnyBuilder[] = AnyBuilder>(
+    items?: TItems,
     options?: ArrayOptions
-  ): T extends AnyBuilder | AnyBuilder[]
-    ? ArrayBuilder<T, unknown>
-    : Builder<unknown[]> => {
-    const builder = new Builder<unknown[]>().type("array");
-    if (options?.minItems !== undefined) builder.minItems(options.minItems);
-    if (options?.maxItems !== undefined) builder.maxItems(options.maxItems);
+  ) {
+    const builder = new Builder<InferArrayType<TItems>>().type("array");
+    if (options?.minItems) builder.minItems(options.minItems);
+    if (options?.maxItems) builder.maxItems(options.maxItems);
     if (options?.uniqueItems) builder.uniqueItems(options.uniqueItems);
     if (items) builder.items(items);
     if (options?.additionalItems)
       builder.additionalItems(options.additionalItems);
-    return builder as any;
+    return builder;
   },
-  object: <T extends undefined | Record<string, AnyBuilder>>(
-    properties?: T,
+  object<TProperties extends AnyBuilderMap = AnyBuilderMap>(
+    properties?: TProperties,
     options?: ObjectOptions
-  ): T extends Record<string, AnyBuilder>
-    ? ObjectBuilder<T, unknown>
-    : Builder<Record<string, unknown>> => {
-    const builder = new Builder<Record<string, unknown>>().type("object");
-    if (options?.minProperties !== undefined)
-      builder.minProperties(options.minProperties);
-    if (options?.maxProperties !== undefined)
-      builder.maxProperties(options.maxProperties);
+  ) {
+    const builder = new Builder<InferObjectType<TProperties>>().type("object");
+    if (options?.minProperties) builder.minProperties(options.minProperties);
+    if (options?.maxProperties) builder.maxProperties(options.maxProperties);
     if (options?.required) builder.required(options.required);
     if (properties) builder.properties(properties);
     if (options?.patternProperties)
-      builder.patternProperties(options.patternProperties!);
+      builder.patternProperties(options.patternProperties);
     if (options?.additionalProperties)
       builder.additionalProperties(options.additionalProperties);
     if (options?.dependencies) builder.dependencies(options.dependencies);
-    return builder as any;
+    return builder;
   },
 
-  bool: () => buildType<boolean>(undefined, "bool"),
-  int: <T extends number = number>(options?: NumericOptions<number>) =>
-    buildScalar<T>(undefined, "int", options),
-  bigint: <T extends bigint = bigint>(options?: NumericOptions<bigint>) =>
-    buildScalar<T, bigint>(undefined, "long", options),
-  double: (options?: NumericOptions<number>) =>
-    buildScalar<number>(undefined, "double", options),
+  bsonType: <T>(bsonType: string) => buildType<T>({ bsonType }),
+  bool: () => buildType<boolean>({ bsonType: "bool" }),
+  double: <T extends number = number>(options?: NumericOptions<number>) =>
+    buildScalar<T, number>({ bsonType: "double", ...options }),
+  int: <T extends number>(options?: NumericOptions<number>) =>
+    buildScalar<T, number>({ bsonType: "int", ...options }),
+  bigint: <T extends bigint>(options?: NumericOptions<bigint>) =>
+    buildScalar<T, bigint>({ bsonType: "long", ...options }),
   long: (options?: NumericOptions<bigint>) =>
-    buildScalar<Long, bigint>(undefined, "long", options),
+    buildScalar<Long, bigint>({ bsonType: "long", ...options }),
   decimal: (options?: NumericOptions<bigint>) =>
-    buildScalar<Decimal128, bigint>(undefined, "decimal", options),
-  date: () => buildType<Date>(undefined, "date"),
-  timestamp: () => buildType<Timestamp>(undefined, "timestamp"),
-  objectId: () => buildType<ObjectId>(undefined, "objectId"),
-  binData: () => buildType<Binary>(undefined, "binData"),
-} as const;
+    buildScalar<Decimal128, bigint>({ bsonType: "decimal", ...options }),
+  date: () => buildType<Date>({ bsonType: "date" }),
+  timestamp: () => buildType<Timestamp>({ bsonType: "timestamp" }),
+  objectId: () => buildType<ObjectId>({ bsonType: "objectId" }),
+  binary: () => buildType<Binary>({ bsonType: "binData" }),
+};

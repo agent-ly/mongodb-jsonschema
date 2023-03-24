@@ -1,12 +1,16 @@
-import { Type, InferType } from "../src/mod.ts";
+import { Build, InferType, LoosenType } from "../src/mod.ts";
 
-const User = Type.object({
-  _id: Type.string(),
-  name: Type.string(),
-  age: Type.number(),
-  email: Type.string().nullable(),
-  createdAt: Type.date(),
-  updatedAt: Type.date(),
+const builder = Build.object({
+  _id: Build.string(),
+  name: Build.string(),
+  age: Build.number().nullable(),
+  email: Build.string().nullable(),
+  bio: Build.string().nullable(),
+  tags: Build.array(Build.string()),
+  metadata: Build.object(),
 });
 
-type User = InferType<typeof User>;
+type User = InferType<typeof builder>;
+type NewUser = LoosenType<User>;
+
+console.dir(builder.getSchema(), { depth: 10 });
